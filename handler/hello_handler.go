@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 )
@@ -14,12 +15,13 @@ func NewHelloHandler() *HelloHandler {
 }
 
 // 回声服务器，返回接受的body
+// 实现Handler接口
 func (h HelloHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	b := request.Body
-	buf := make([]byte, 5000)
-	len, _ := b.Read(buf)
+	buf := bytes.Buffer{}
+	buf.ReadFrom(b)
 	b.Close()
-	s := string(buf)
-	fmt.Printf("get request: \n%s\n%s\n", request.RequestURI, s)
-	writer.Write(buf[:len])
+	s := buf.String()
+	fmt.Printf("get request: \nMethod:%s\n%s\n%s\n", request.Method, request.RequestURI, s)
+	writer.Write(buf.Bytes())
 }
