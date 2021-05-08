@@ -41,6 +41,10 @@ func main() {
 	})
 	router.GET("/", AuthCheck(defaultHandler.ServeHTTP))
 	router.GET("/hello/:name", helloHandler.ServeHTTP)
+	router.POST("/hello/", helloHandler.ServeHTTP)
+	router.PUT("hello", helloHandler.ServeHTTP)
+	router.PATCH("patch", helloHandler.ServeHTTP)
+	router.DELETE("/hello", defaultHandler.ServeHTTP)
 
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
