@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"github.com/julienschmidt/httprouter"
 	"log"
 	"net/http"
 )
@@ -12,7 +13,7 @@ func NewDefaultHandler() *DefaultHandler {
 	return &DefaultHandler{}
 }
 
-func (DefaultHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+func (DefaultHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	buf := bytes.Buffer{}
 	buf.ReadFrom(request.Body)
 	s := buf.String()

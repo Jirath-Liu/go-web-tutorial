@@ -2,17 +2,45 @@ package main
 
 import (
 	"fmt"
+	"github.com/julienschmidt/httprouter"
 	"go-web-tutorial/handler"
 	"log"
 	"net/http"
 )
 
+func AuthCheck(handle httprouter.Handle) httprouter.Handle {
+	return func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+		log.Printf("Auth check ")
+		log.Printf(params.ByName("auth"))
+		if params.ByName("auth") != "" {
+			handle(writer, request, params)
+		} else {
+			http.Error(writer, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		}
+
+	}
+}
+
 func main() {
 	fmt.Println("Starting the server ...")
 
-	http.Handle("/", handler.NewDefaultHandler())
+	defaultHandler := handler.NewDefaultHandler()
 	helloHandler := handler.NewHelloHandler()
-	http.Handle("/hello", helloHandler)
-	// 创建服务器，ListenAndServe若服务器宕机，会返回异常
-	log.Fatal(http.ListenAndServe("localhost:8080", nil))
+
+	router := httprouter.New()
+	router.GlobalOPTIONS = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Access-Control-Request-Method") != "" {
+			// Set CORS headers
+			header := w.Header()
+			header.Set("Access-Control-Allow-Methods", r.Header.Get("Allow"))
+			header.Set("Access-Control-Allow-Origin", "*")
+		}
+
+		// Adjust status code to 204
+		w.WriteHeader(http.StatusNoContent)
+	})
+	router.GET("/", AuthCheck(defaultHandler.ServeHTTP))
+	router.GET("/hello/:name", helloHandler.ServeHTTP)
+
+	log.Fatal(http.ListenAndServe(":8080", router))
 }
