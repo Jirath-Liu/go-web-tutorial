@@ -2,49 +2,46 @@ package main
 
 import (
 	"fmt"
-	"github.com/julienschmidt/httprouter"
+	"github.com/gin-gonic/gin"
 	"go-web-tutorial/handler"
 	"log"
-	"net/http"
 )
 
-func AuthCheck(handle httprouter.Handle) httprouter.Handle {
-	return func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-		log.Printf("Auth check ")
-		log.Printf(params.ByName("auth"))
-		if params.ByName("auth") != "" {
-			handle(writer, request, params)
-		} else {
-			http.Error(writer, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-		}
+func PrintGGG(context *gin.Context) {
+	log.Printf("GGG")
+}
 
-	}
+func PrintGeo(context *gin.Context) {
+	log.Printf("geo")
+}
+
+func PrintEarly(context *gin.Context) {
+	log.Printf("early")
 }
 
 func main() {
 	fmt.Println("Starting the server ...")
-
 	defaultHandler := handler.NewDefaultHandler()
 	helloHandler := handler.NewHelloHandler()
-
-	router := httprouter.New()
-	router.GlobalOPTIONS = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Access-Control-Request-Method") != "" {
-			// Set CORS headers
-			header := w.Header()
-			header.Set("Access-Control-Allow-Methods", r.Header.Get("Allow"))
-			header.Set("Access-Control-Allow-Origin", "*")
-		}
-
-		// Adjust status code to 204
-		w.WriteHeader(http.StatusNoContent)
+	// gin.Default()也适用gin.New()创建engine实例，但是会默认使用Logger和Recover中间件。
+	engine := gin.Default()
+	//在根节点使用GGG中间件
+	engine.Use(PrintGGG)
+	// 直接添加，该组使用PrintGeo中间件
+	g := engine.Group("/g", PrintGeo)
+	// 使用.GET等方法添加，会计算绝对请求路径，并添加给gin引擎
+	// "/g"不会使用到PrintEarly中间件
+	g.GET("/g", helloHandler.ServeHTTP)
+	g.Use(PrintEarly)
+	g.GET("/a", helloHandler.ServeHTTP)
+	// engine也是一个Group
+	engine.GET("/", defaultHandler.ServeHTTP)
+	engine.GET("/hello", helloHandler.ServeHTTP)
+	engine.GET("/a", func(context *gin.Context) {
+		log.Printf("a接口")
 	})
-	router.GET("/", AuthCheck(defaultHandler.ServeHTTP))
-	router.GET("/hello/:name", helloHandler.ServeHTTP)
-	router.POST("/hello/", helloHandler.ServeHTTP)
-	router.PUT("hello", helloHandler.ServeHTTP)
-	router.PATCH("patch", helloHandler.ServeHTTP)
-	router.DELETE("/hello", defaultHandler.ServeHTTP)
-
-	log.Fatal(http.ListenAndServe(":8080", router))
+	// 默认运行在8080
+	engine.Run()
+	// 指定位置
+	//engine.Run(":8081")
 }
